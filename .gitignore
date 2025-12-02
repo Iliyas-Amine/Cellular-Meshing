@@ -1,0 +1,12 @@
+/tiles/
+/noises/
+/meshes/
+/logs/
+/fnoises/
+/utils/__pycache__/
+/venv/
+test.py
+render.py
+.dockerignore
+*.png
+*.vtk

@@ -53,10 +53,8 @@ def _save_vtk_mesh(polydata, filename):
     writer.SetInputData(polydata)
     writer.Write()
 
-def _gen_mesh(img):
+def _gen_mesh(noise_map):
     uid = urandom(4).hex()
-    logging.info(f"Mesh#{uid} - Loading noise...")
-    noise_map = _load_noise_map(img)
     logging.info(f"Mesh#{uid} - Noise loaded")
     logging.info(f"Mesh#{uid} - Creating primary mesh...")
     vtk_mesh = _create_vtk_mesh(noise_map)
@@ -66,4 +64,5 @@ def _gen_mesh(img):
     logging.info(f"Mesh#{uid} - Mesh smoothed")
     logging.info(f"Mesh#{uid} - Saving...")
     _save_vtk_mesh(vtk_mesh, f"meshes/mesh_{uid}.vtk")
+    _save_vtk_mesh(smoothed_mesh, f"meshes/smesh_{uid}.vtk")
     logging.info(f"Mesh#{uid} - Saved")

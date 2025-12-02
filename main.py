@@ -3,20 +3,22 @@ import utils.multprocutils as multprocutils, logging
 from utils.noiseutils import stacking
 import time
 
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(funcName)s - %(levelname)s - %(message)s',
-                    filename=f"logs/{time.asctime()}.log")
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(funcName)s - %(levelname)s - %(message)s')
+                    #filename=f"logs/{time.asctime()}.log")
 
 def run():
     logging.info("Program start")
     delete_files(['noises', 'meshes', 'fnoises', 'tiles'])
-    multprocutils.gen_tiles()
-    multprocutils.gen_noises()
-    stacking()
+    tiles = multprocutils.gen_tiles()
+    noises = multprocutils.gen_noises(tiles)
+    fnoises = list()
+    fnoises.append(stacking(noises))
     for _ in range(4):
         delete_files(['noises'])
-        multprocutils.gen_noises()
-        stacking()
-    multprocutils.gen_meshes()
+        noises = multprocutils.gen_noises(tiles)
+        fnoises.append(stacking(noises))
+    
+    multprocutils.gen_meshes(fnoises)
     logging.info("Program exit")
 
 
