@@ -1,5 +1,5 @@
 # Multipliers list for noise generation
-MULTIPLIERS = [2, 2, 4, 8, 8]
+MULTIPLIERS = [2, 4, 8, 8, 16]
 
 # Pattern for noise Stacking
 PATTERN = [0.4, 0.3, 0.15, 0.1, 0.05]
@@ -20,7 +20,7 @@ NEIGHBOR_ACTIVATION_FACTOR = 0.11
 SIGMA = 2
 
 # Gaussian Blur Radius
-BLUR_RADIUS = 16
+BLUR_RADIUS = 4
 
 # Unsharp Mask Radius and Percent
 UNSHARP_RADIUS, UNSHARP_PERCENT = 32, 100

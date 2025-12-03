@@ -1,25 +1,25 @@
 from concurrent.futures import ProcessPoolExecutor, wait
 from utils.noiseutils import _conv_tilemap, _join_tiles
-from utils.fileutils import fetch_imgs
 from utils.meshutils import _gen_mesh
 from utils.tilegen import _gen_pop
 from utils.config import (MULTIPLIERS)
+from os import cpu_count
 import logging
 
 
 def _gen_tile():
-    logging.info("Generating a single tile...")
+    logging.debug("Generating a single tile...")
     matrix = _gen_pop()
     logging.debug(f"Matrix: {matrix}")
     tile = _conv_tilemap(matrix)
-    logging.info("Generated tile")
+    logging.debug("Generated tile")
     return tile
 
 
 def gen_tiles():
     n = 64
     logging.info(f"Generating {n} tiles...")
-    with ProcessPoolExecutor(max_workers=6) as executor:
+    with ProcessPoolExecutor(max_workers=cpu_count()) as executor:
         futures = [executor.submit(_gen_tile) for _ in range(n)]
         wait(futures)
     tiles = list()

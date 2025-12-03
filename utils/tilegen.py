@@ -1,30 +1,47 @@
-import numpy as np, random
+import numpy as np
+from scipy.signal import convolve2d
 from utils.config import (GRID_SIZE, INITIAL_SEEDS, UPDATE_ITERATIONS, NEIGHBOR_ACTIVATION_FACTOR)
 
-def _get_neighbors(x, y):
-    return [
-        (x + dx, y + dy)
-        for dx in [-1, 0, 1]
-        for dy in [-1, 0, 1]
-        if not (dx == 0 and dy == 0)
-        and 0 <= x + dx < GRID_SIZE
-        and 0 <= y + dy < GRID_SIZE
-    ]
+# Define a kernel that represents the 8 neighbors
+# 1 1 1
+# 1 0 1
+# 1 1 1
+NEIGHBOR_KERNEL = np.array([
+    [1, 1, 1],
+    [1, 0, 1],
+    [1, 1, 1]
+], dtype=np.int8)
 
-def _update_matrix(matrix):
-    new_matrix = matrix.copy()
-    for x in range(GRID_SIZE):
-        for y in range(GRID_SIZE):
-            current_value = matrix[x, y]
-            n = sum([matrix[x, y] for x, y in _get_neighbors(x, y)])
-            if current_value == 0 and random.uniform(0, 1) < n*NEIGHBOR_ACTIVATION_FACTOR:
-                new_matrix[x, y] = 1
+def _update_matrix_vectorized(matrix):
+    # 1. Calculate sum of neighbors for EVERY cell at once using convolution
+    # mode='same' keeps the grid size 64x64
+    neighbor_counts = convolve2d(matrix, NEIGHBOR_KERNEL, mode='same', boundary='fill', fillvalue=0)
+    
+    # 2. Generate random values for the whole grid at once
+    random_grid = np.random.uniform(0, 1, (GRID_SIZE, GRID_SIZE))
+    
+    # 3. Create a mask for where growth should happen
+    # Logic: If cell is empty (0) AND random check passes
+    growth_mask = (matrix == 0) & (random_grid < (neighbor_counts * NEIGHBOR_ACTIVATION_FACTOR))
+    
+    # 4. Apply the growth
+    # We use bitwise OR to turn the 0s into 1s where the mask is True
+    new_matrix = matrix | growth_mask.astype(np.int8)
+    
     return new_matrix
 
 def _gen_pop():
+    # Initialize grid
     env = np.zeros((GRID_SIZE, GRID_SIZE), dtype=np.int8)
-    for _ in range(INITIAL_SEEDS):
-        env[random.randint(0,GRID_SIZE-1), random.randint(0,GRID_SIZE-1)] = 1
+    
+    # Place seeds (Vectorized random choice)
+    # We pick flat indices and unravel them to x,y coordinates
+    flat_indices = np.random.choice(GRID_SIZE * GRID_SIZE, INITIAL_SEEDS, replace=False)
+    x_coords, y_coords = np.unravel_index(flat_indices, (GRID_SIZE, GRID_SIZE))
+    env[x_coords, y_coords] = 1
+    
+    # Run iterations
     for _ in range(UPDATE_ITERATIONS):
-        env = _update_matrix(env)
+        env = _update_matrix_vectorized(env)
+        
     return env

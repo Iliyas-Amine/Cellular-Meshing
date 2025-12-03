@@ -1,51 +1,37 @@
-from utils.fileutils import _load_noise_map
+import vtk
+import logging
+import numpy as np
+from vtk.util import numpy_support
+from utils.config import (SAVE)
 from os import urandom
-import vtk, logging
 
-def _create_vtk_mesh(noise_map):
+def _create_vtk_mesh_vectorized(noise_map):
+    rows, cols = noise_map.shape
+    x = np.arange(0, rows, 1)
+    y = np.arange(0, cols, 1)
+    mx, my = np.meshgrid(x, y, indexing='ij') 
+    
+    flat_x = mx.ravel()
+    flat_y = noise_map.ravel()
+    flat_z = my.ravel()        
+    
+    coords = np.column_stack((flat_x, flat_y, flat_z)).ravel()
+    
+    vtk_float_array = numpy_support.numpy_to_vtk(num_array=coords, deep=True, array_type=vtk.VTK_FLOAT)
+    vtk_float_array.SetNumberOfComponents(3)
+    
     points = vtk.vtkPoints()
-    num_rows, num_cols = noise_map.shape
+    points.SetData(vtk_float_array)
     
-    # Insert points
-    for i in range(num_rows):
-        for j in range(num_cols):
-            z_value = noise_map[i, j] # * 0.65 # NOTE In case you want to tone down the degree of the slope
-            points.InsertNextPoint(i, z_value, j)
+    sgrid = vtk.vtkStructuredGrid()
+    sgrid.SetDimensions(cols, rows, 1) 
+    sgrid.SetPoints(points)
 
-    polys = vtk.vtkCellArray()
+    geom_filter = vtk.vtkGeometryFilter()
+    geom_filter.SetInputData(sgrid)
+    geom_filter.Update()
     
-    # Create polygons (triangles) by connecting adjacent points
-    for i in range(num_rows - 1):  # Iterate up to num_rows-1 for valid polygons
-        for j in range(num_cols - 1):  # Iterate up to num_cols-1 for valid polygons
-            idx1 = i * num_cols + j
-            idx2 = idx1 + 1
-            idx3 = (i + 1) * num_cols + j
-            idx4 = idx3 + 1
-
-            polys.InsertNextCell(3, [idx1, idx2, idx3])
-            polys.InsertNextCell(3, [idx2, idx4, idx3])
-    
-    # Create polydata
-    polydata = vtk.vtkPolyData()
-    polydata.SetPoints(points)
-    polydata.SetPolys(polys)
-    
-    return polydata
-
-def _smooth_mesh(polydata, number_of_iterations=100):
-    logging.info("Starting mesh smoothing...")
-    smoother = vtk.vtkSmoothPolyDataFilter()
-    logging.info("Smoother initialized")
-    smoother.SetInputData(polydata)
-    logging.info("Input data set")
-    smoother.SetNumberOfIterations(number_of_iterations)
-    logging.info(f"Number of iterations set to {number_of_iterations}")
-    smoother.SetRelaxationFactor(0.1)
-    logging.info("Relaxation factor set")
-    smoother.Update() 
-    logging.info("Smoother updated")
-    return smoother.GetOutput()
-
+    return geom_filter.GetOutput()
 
 def _save_vtk_mesh(polydata, filename):
     writer = vtk.vtkPolyDataWriter()
@@ -55,14 +41,12 @@ def _save_vtk_mesh(polydata, filename):
 
 def _gen_mesh(noise_map):
     uid = urandom(4).hex()
-    logging.info(f"Mesh#{uid} - Noise loaded")
-    logging.info(f"Mesh#{uid} - Creating primary mesh...")
-    vtk_mesh = _create_vtk_mesh(noise_map)
-    logging.info(f"Mesh#{uid} - Created primary mesh")
-    logging.info(f"Mesh#{uid} - Smoothing mesh...")
-    smoothed_mesh = _smooth_mesh(vtk_mesh) 
-    logging.info(f"Mesh#{uid} - Mesh smoothed")
-    logging.info(f"Mesh#{uid} - Saving...")
-    _save_vtk_mesh(vtk_mesh, f"meshes/mesh_{uid}.vtk")
-    _save_vtk_mesh(smoothed_mesh, f"meshes/smesh_{uid}.vtk")
-    logging.info(f"Mesh#{uid} - Saved")
+    logging.debug(f"Mesh#{uid} - Noise loaded")
+    
+    logging.debug(f"Mesh#{uid} - Creating primary mesh (Vectorized)...")
+    vtk_mesh = _create_vtk_mesh_vectorized(noise_map)
+    logging.debug(f"Mesh#{uid} - Created primary mesh")
+    if SAVE:
+        logging.debug(f"Mesh#{uid} - Saving...")
+        _save_vtk_mesh(vtk_mesh, f"meshes/mesh_{uid}.vtk")
+        logging.debug(f"Mesh#{uid} - Saved")
