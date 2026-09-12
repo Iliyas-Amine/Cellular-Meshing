@@ -5,14 +5,26 @@ from typing import List, Any
 
 from numpy.typing import NDArray
 
-def hash_func(x, y, z, seed=0):
-    h = (x * 0x1B873593) ^ (y * 0x85EBCA6B) ^ (z * 0xC2B2AE35) ^ (seed * 0x9E3779B9)
+def hash_func(shape, seed=0):
+    nx, ny, nz = shape
     
-    h = (h ^ (h >> 16)) * 0x7FEB352D
-    h = (h ^ (h >> 13)) * 0x846CA68B
-    h = h ^ (h >> 16)
+    x = np.arange(nx, dtype=np.uint32)[:, None, None]
+    y = np.arange(ny, dtype=np.uint32)[None, :, None]
+    z = np.arange(nz, dtype=np.uint32)[None, None, :]
+
+    h = (x * np.uint32(0x1B873593)) ^ (y * np.uint32(0x85EBCA6B)) ^ (z * np.uint32(0xC2B2AE35))
     
-    return (h & 0xFFFFFFFF) / 4294967296.0
+    if seed:
+        seed_hash = (int(seed) * 0x9E3779B9) & 0xFFFFFFFF
+        h ^= np.uint32(seed_hash)
+
+    h ^= (h >> np.uint32(16))
+    h *= np.uint32(0x7FEB352D)
+    h ^= (h >> np.uint32(13))
+    h *= np.uint32(0x846CA68B)
+    h ^= (h >> np.uint32(16))
+
+    return h.astype(np.float32) * (1.0 / 4294967296.0)
 
 def save_noise_image(data: NDArray[np.floating], folder: str, filename: str) -> None:
     """
@@ -55,9 +67,7 @@ def batch_tilemap(matrices: NDArray[np.int8], config: dict[str, Any]) -> NDArray
     """
     # Convert input binary matrices to float for noise processing
     # Generate base white noise
-    vec_hash = np.vectorize(hash_func)
-    x,y,z = np.indices(matrices.shape)
-    noise_batch = vec_hash(x,y,z)
+    noise_batch = hash_func(matrices.shape)
 
     # In-place negation for empty cells avoids allocating a third 3D matrix
     mask_below = (matrices == 0)

@@ -5,9 +5,9 @@ import numpy as np
 from numpy.typing import NDArray
 from scipy.ndimage import correlate
 
-from utils.noiseutils import batch_tilemap
+from utils.noiseutils import batch_tilemap, hash_func
 
-def _update_batch(matrices: NDArray[np.int8], config: dict[str, Any]) -> NDArray[np.int8]:
+def _update_batch(matrices: NDArray[np.int8], config: dict[str, Any], seed: int) -> NDArray[np.int8]:
     """
     Performs a single simulation step on a batch of Cellular Automata grids.
 
@@ -31,13 +31,11 @@ def _update_batch(matrices: NDArray[np.int8], config: dict[str, Any]) -> NDArray
         mode='wrap'
     )
 
-    # Generate a random probability grid for stochastic growth
-    # This ensures that even with identical neighbors, growth patterns differ
-    random_grid = config["PROB_RNG"].uniform(0, 1, matrices.shape)
-    
+    growth_grid = hash_func(matrices.shape,seed=seed)
+
     # Determine which cells grow based on neighbors and chance
     # Rule: An empty cell becomes active IF random_val < (neighbors * factor)
-    growth_mask = (matrices == 0) & (random_grid < (neighbor_counts * config["NEIGHBOR_ACTIVATION_FACTOR"]))
+    growth_mask = (matrices == 0) & (growth_grid < (neighbor_counts * config["NEIGHBOR_ACTIVATION_FACTOR"]))
 
     # Return the union of old cells and newly grown cells
     return matrices | growth_mask
@@ -77,8 +75,8 @@ def _gen_pop_batch(config: dict[str, Any]) -> NDArray[np.int8]:
     env[x, y, z] = 1
 
     # Run the simulation steps
-    for _ in range(UPDATE_ITERATIONS):
-        env = _update_batch(env, config)
+    for i in range(UPDATE_ITERATIONS):
+        env = _update_batch(env, config, i)
         
     return env
 
