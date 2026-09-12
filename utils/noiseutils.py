@@ -53,8 +53,6 @@ def batch_tilemap(matrices: NDArray[np.int8], config: dict[str, Any]) -> NDArray
     noise_batch[mask_below] *= -1.0
 
     for i in range(config["TILES"]):
-        # Apply a strong Gaussian blur to smooth the sharp white noise into rolling terrain
-        cv2.GaussianBlur(noise_batch[i], config["KERNEL_01"], 0, dst=noise_batch[i])
         if config["SAVE"]:
             save_noise_image(noise_batch[i], "tiles", f"tile_{config['SEED']}_{i}")
     
