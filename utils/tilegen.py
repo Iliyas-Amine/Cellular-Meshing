@@ -58,7 +58,7 @@ def _gen_pop_batch(config: dict[str, Any]) -> NDArray[np.int8]:
     # Initialize parameters
     TILES = config["TILES"]
     GRID_SIZE = config["GRID_SIZE"]
-    INITIAL_SEEDS = config["INITIAL_SEEDS"]
+    INITIAL_SEEDS = config["SEEDS_PER_TILE"]
     UPDATE_ITERATIONS = config["UPDATE_ITERATIONS"]
     # Initialize empty 3D environment (Batch of 2D grids)
     # Shape is (TILES, 64, 64) allowing us to process all tiles in parallel
