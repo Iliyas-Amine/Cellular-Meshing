@@ -66,11 +66,9 @@ def _gen_pop_batch(config: dict[str, Any]) -> NDArray[np.int8]:
 
     # Select random indices to seed the population
     # We sample from the flattened total size to ensure unique seeds across the batch
-    flat_indices = config["POS_RNG"].choice(
-        TILES * GRID_SIZE * GRID_SIZE, 
-        INITIAL_SEEDS, 
-        replace=False
-    )
+    flat_indices = np.array([], dtype=np.int32)
+    for i in range(TILES):
+        flat_indices = np.append(flat_indices, config["POS_RNG"].choice(GRID_SIZE * GRID_SIZE, INITIAL_SEEDS, replace=False) + i*GRID_SIZE**2)
     
     # Convert flat indices to 3D coordinates (Tile Index, Row, Col)
     x, y, z = np.unravel_index(flat_indices, (TILES, GRID_SIZE, GRID_SIZE))
