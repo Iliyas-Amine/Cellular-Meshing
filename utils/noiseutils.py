@@ -5,6 +5,15 @@ from typing import List, Any
 
 from numpy.typing import NDArray
 
+def hash_func(x, y, z, seed=0):
+    h = (x * 0x1B873593) ^ (y * 0x85EBCA6B) ^ (z * 0xC2B2AE35) ^ (seed * 0x9E3779B9)
+    
+    h = (h ^ (h >> 16)) * 0x7FEB352D
+    h = (h ^ (h >> 13)) * 0x846CA68B
+    h = h ^ (h >> 16)
+    
+    return (h & 0xFFFFFFFF) / 4294967296.0
+
 def save_noise_image(data: NDArray[np.floating], folder: str, filename: str) -> None:
     """
     Normalizes and saves a floating-point noise array as a PNG image.
@@ -27,9 +36,6 @@ def save_noise_image(data: NDArray[np.floating], folder: str, filename: str) -> 
     norm_img = (shifted * 127.5).astype(np.uint8) 
     filename = os.path.join(folder, f"{filename}.png") 
     cv2.imwrite(filename, norm_img)
-
-def hash_func(x, y,z):
-    return ((65123**x ^ 21647**y ^ 39233**z) % 2147483647) / 2147483647
 
 def batch_tilemap(matrices: NDArray[np.int8], config: dict[str, Any]) -> NDArray[np.floating]:
     """
